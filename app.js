@@ -1,0 +1,20 @@
+const images=[{src:'assets/cover.webp',title:'专辑正面',alt:'自在极意锋黑胶唱片与星尘人像封套'},{src:'assets/back-white.webp',title:'专辑背面',alt:'自在极意锋专辑背面与十首曲目'}];
+let current=0,modalIndex=0,toastTimer,returnFocus;
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+function selectImage(i){current=(i+images.length)%images.length;$('#heroImage').src=images[current].src;$('#heroImage').alt=images[current].alt;$('#imageCount').textContent=`0${current+1} / 02`;$('#openImage').setAttribute('aria-label','放大查看'+images[current].title);$$('.thumb').forEach((b,n)=>{b.classList.toggle('selected',n===current);b.setAttribute('aria-pressed',n===current)})}
+$$('.thumb').forEach(b=>b.addEventListener('click',()=>selectImage(Number(b.dataset.index))));
+function toast(t){$('#toast').textContent=t;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),2200)}
+let saved=false;try{saved=localStorage.getItem('ego-king-favorite')==='true'}catch{}
+function renderFavorite(){$$('.favorite').forEach(b=>{b.setAttribute('aria-pressed',saved);b.setAttribute('aria-label',saved?'取消收藏':'收藏专辑');const s=b.querySelector('span');if(s)s.textContent=saved?'已收藏':'收藏'})}renderFavorite();
+$$('.favorite').forEach(b=>b.addEventListener('click',()=>{saved=!saved;let persisted=true;try{localStorage.setItem('ego-king-favorite',String(saved))}catch{persisted=false}renderFavorite();toast(saved?(persisted?'已收藏至此浏览器':'本次浏览已收藏'):'已取消收藏')}));
+$$('.share').forEach(b=>b.addEventListener('click',async()=>{const url=location.origin+location.pathname;try{if(navigator.share){await navigator.share({title:'自在极意锋 · 郑锐锋',text:'探索《自在极意锋》个人黑胶专辑',url});return}await navigator.clipboard.writeText(url);toast('专辑链接已复制')}catch(e){if(e.name!=='AbortError')toast('请从浏览器地址栏复制链接')}}));
+const dialog=$('#lightbox');function renderModal(){const im=images[modalIndex];$('#lightboxImage').src=im.src;$('#lightboxImage').alt=im.alt;$('#lightboxTitle').textContent=im.title;$('#lightboxCounter').textContent=`${modalIndex+1} / 2`;$('.lightbox-scroll').classList.remove('zoomed');$('#zoomToggle').textContent='放大';$('.lightbox-scroll').scrollTop=0;$('.lightbox-scroll').scrollLeft=0}
+function openModal(i){returnFocus=document.activeElement;modalIndex=i;renderModal();dialog.showModal();document.body.style.overflow='hidden'}
+$('#openImage').onclick=()=>openModal(current);$('#zoomButton').onclick=()=>openModal(current);$('.back-art').onclick=()=>openModal(1);$('#closeLightbox').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{document.body.style.overflow='';returnFocus?.focus()});
+function stepModal(n){modalIndex=(modalIndex+n+images.length)%images.length;renderModal()}
+$('#prevImage').onclick=()=>stepModal(-1);$('#nextImage').onclick=()=>stepModal(1);$('#zoomToggle').onclick=()=>{const z=$('.lightbox-scroll').classList.toggle('zoomed');$('#zoomToggle').textContent=z?'适合屏幕':'放大'};
+document.addEventListener('keydown',e=>{if(dialog.open){if(e.key==='ArrowLeft')stepModal(-1);if(e.key==='ArrowRight')stepModal(1)}});
+let touchStart;$('#galleryFrame').addEventListener('touchstart',e=>{touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});$('#galleryFrame').addEventListener('touchend',e=>{if(!touchStart)return;const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){selectImage(current+(dx<0?1:-1))}touchStart=null},{passive:true});
+const sectionLinks=$$('.section-nav a');const sections=['details','tracks','story'].map(id=>document.getElementById(id));let ticking=false;
+function updateNav(){let active=sections[0];for(const s of sections)if(s.getBoundingClientRect().top<=140)active=s;sectionLinks.forEach(a=>{const on=a.hash==='#'+active.id;a.classList.toggle('active',on);if(on)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current')});ticking=false}
+window.addEventListener('scroll',()=>{if(!ticking){requestAnimationFrame(updateNav);ticking=true}},{passive:true});updateNav();
